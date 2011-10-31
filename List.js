@@ -299,6 +299,7 @@ function(put, declare, listen, aspect, has, TouchScroll, hasClass){
 			
 			// remove the content so it can be recreated
 			this.contentNode.innerHTML = "";
+			this.bottomNode = put(this.contentNode, "div.dgrid-cell.dgrid-bottom", " ");
 			// remove any listeners
 			for(var i = 0;i < this.observers.length; i++){
 				this.observers[i].cancel();
@@ -361,10 +362,7 @@ function(put, declare, listen, aspect, has, TouchScroll, hasClass){
 				return lastRow = self.insertRow(object, rowsFragment, null, start++, options);
 			}
 			function whenDone(resolvedRows){
-				(beforeNode && beforeNode.parentNode || self.contentNode).insertBefore(rowsFragment, beforeNode || null);
-				if(!beforeNode){
-					put(lastRow, ".dgrid-last-row");
-				}
+				(beforeNode && beforeNode.parentNode || self.contentNode).insertBefore(rowsFragment, beforeNode || self.bottomNode);
 				return rows = resolvedRows;
 			}
 			return whenDone(rows);

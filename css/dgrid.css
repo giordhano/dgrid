@@ -46,7 +46,6 @@ html.has-quirks .dgrid-header-hidden .dgrid-cell {
 	overflow: hidden;
 	background-color: #eee;
 }
-
 .dgrid-row-table {
 	border-collapse: collapse;
 	border: none;
@@ -67,10 +66,6 @@ html.has-quirks .dgrid-header-hidden .dgrid-cell {
 	-moz-box-sizing: border-box;
 	-ms-box-sizing: border-box;
 	-webkit-box-sizing: border-box;
-}
-
-.dgrid-last-row .dgrid-cell {
-	border-bottom-style: solid;
 }
 
 .dgrid-cell-padding {

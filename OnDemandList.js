@@ -64,13 +64,13 @@ return declare([List], {
 		//		into view.
 		if(!preloadNode){
 			var rootQuery = true;
-			var topPreloadNode = put(this.contentNode, "div.dgrid-preload");
+			var topPreloadNode = put(this.bottomNode, "-div.dgrid-preload");
 			topPreloadNode.preload = true;
 			topPreloadNode.query = query;
 			topPreloadNode.start = 0;
 			topPreloadNode.count = 0;
 			topPreloadNode.next =
-				preloadNode = put(this.contentNode, "div.dgrid-preload");
+				preloadNode = put(this.bottomNode, "-div.dgrid-preload");
 			preloadNode.previous = topPreloadNode;
 		}
 		// this preload node is used to represent the area of the grid that hasn't been
@@ -108,9 +108,6 @@ return declare([List], {
 				if(trCount){ self.rowHeight = height / trCount; }
 				
 				total -= trCount;
-				if(!total && trCount && rootQuery){
-					put(trs[trCount-1], ".dgrid-last-row");
-				}
 				preloadNode.count = total;
 				preloadNode.start = trCount;
 				if(total){
