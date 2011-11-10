@@ -21,6 +21,13 @@ return declare([List], {
 	//		If true, a get request will be performed to the store before each put
 	//		as a baseline when saving; otherwise, existing row data will be used.
 	getBeforePut: true,
+	// getAfterPut: boolean
+	//		If true, a get request will be performed to the store *after* each put,
+	//		in order to refresh all row data from the store.
+	getAfterPut: false,
+	// highlightTime: Number
+	//		Milliseconds to keep ui-state-highlight class on newly-refreshed rows
+	highlightTime: 250,
 	
 	constructor: function(){
 		// Create empty objects on each instance, not the prototype
@@ -169,6 +176,30 @@ return declare([List], {
 			object = lang.delegate(object, dirtyObj);
 		}
 		return this.inherited(arguments);
+	},
+	
+	refreshRow: function(object){
+		// summary:
+		//		Given a store object, refreshes the row representing that object.
+		var row = this.row(object),
+			element = row && row.element,
+			parentNode = element && element.parentNode,
+			beforeNode, i;
+		
+		if(!parentNode){ return; } // not currently rendered
+		
+		beforeNode = element.nextSibling;
+		i = element.className.indexOf("dgrid-row-odd") > -1 ? 1 : 0;
+		
+		// remove old
+		row.remove();
+		// insert new
+		row = this.insertRow(object, parentNode, beforeNode, i);
+		// highlight new
+		put(row, ".ui-state-highlight");
+		setTimeout(function(){
+			put(row, "!ui-state-highlight");
+		}, this.highlightTime);
 	},
 	
 	lastScrollTop: 0,
@@ -361,14 +392,15 @@ return declare([List], {
 		var self = this,
 			store = this.store,
 			dirty = this.dirty,
-			dfd = new Deferred(), promise = dfd.promise,
-			getFunc = function(id){
-				// returns a function to pass as a step in the promise chain,
-				// with the id variable closured
-				return self.getBeforePut ?
-					function(){ return store.get(id); } :
-					function(){ return self.row(id).data; };
-			};
+			dfd = new Deferred(), promise = dfd.promise;
+		
+		function getter(id){
+			// returns a function to pass as a step in the promise chain,
+			// with the id variable closured
+			return self.getBeforePut ?
+				function(){ return store.get(id); } :
+				function(){ return self.row(id).data; };
+		}
 		
 		// function called within loop to generate a function for putting an item
 		function putter(id, dirtyObj) {
@@ -381,18 +413,24 @@ return declare([List], {
 				return Deferred.when(store.put(object), function() {
 					// Delete the item now that it's been confirmed updated
 					delete dirty[id];
+					return id; // for further chaining
 				});
 			};
+		}
+		
+		function refresh(object){
+			self.refreshRow(object);
 		}
 		
 		// For every dirty item, grab the ID
 		for(var id in this.dirty) {
 			// Create put function to handle the saving of the the item
-			var put = putter(id, dirty[id]);
+			var put = putter(id, dirty[id]),
+				get = getter(id);
 			
 			// Add this item onto the promise chain,
-			// getting the item from the store first if desired.
-			promise = promise.then(getFunc(id)).then(put);
+			// getting the item from the store before / after, if desired.
+			promise = promise.then(get).then(put).then(get).then(refresh);
 		}
 		
 		// Kick off and return the promise representing all applicable get/put ops.

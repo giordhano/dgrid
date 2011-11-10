@@ -146,10 +146,8 @@ function(put, declare, listen, aspect, has, TouchScroll, hasClass){
 			}
 		},
 		postMixInProperties: function(){
-			this.observers = [];
 			this._listeners = [];
 			this._rowIdToObject = {};
-			
 		},
 		buildRendering: function(){
 			var domNode = this.domNode;
@@ -299,11 +297,6 @@ function(put, declare, listen, aspect, has, TouchScroll, hasClass){
 			
 			// remove the content so it can be recreated
 			this.contentNode.innerHTML = "";
-			// remove any listeners
-			for(var i = 0;i < this.observers.length; i++){
-				this.observers[i].cancel();
-			}
-			this.observers = [];
 			if(this.init){
 				this.init({
 					domNode: this.bodyNode,
@@ -318,42 +311,21 @@ function(put, declare, listen, aspect, has, TouchScroll, hasClass){
 			//		given node. This will listen for changes in the collection if an observe method
 			//		is available (as it should be if it comes from an Observable data store).
 			options = options || {};
-			var start = options.start || 0;
-			var self = this;
+			var start = options.start || 0,
+				self = this,
+				rows;
 			if(!beforeNode){
 				this.lastCollection = results;
-			}
-			if(results.observe){
-				// observe the results for changes
-				this.observers.push(results.observe(function(object, from, to){
-					// a change in the data took place
-					if(from > -1 && rows[from] && rows[from].parentNode){
-						// remove from old slot
-						self.row(rows.splice(from, 1)[0]).remove();
-					}
-					if(to > -1){
-						// add to new slot (either before an existing row, or at the end)
-						var before = rows[to] || beforeNode;
-						if(before.parentNode){
-							var row = self.insertRow(object, before.parentNode, before, (options.start + to), options);
-							put(row, ".ui-state-highlight");
-							setTimeout(function(){
-								put(row, "!ui-state-highlight");
-							}, 250);
-							rows.splice(to, 0, row);
-						}
-					}
-				}, true));
 			}
 			var rowsFragment = document.createDocumentFragment();
 			// now render the results
 			if(results.map){
-				var rows = results.map(mapEach, console.error);
+				rows = results.map(mapEach, console.error);
 				if(rows.then){
 					return rows.then(whenDone);
 				}
 			}else{
-				var rows = [];
+				rows = [];
 				for(var i = 0, l = results.length; i < l; i++){
 					rows[i] = mapEach(results[i]);
 				}
