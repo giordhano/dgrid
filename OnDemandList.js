@@ -178,28 +178,42 @@ return declare([List], {
 		return this.inherited(arguments);
 	},
 	
-	refreshRow: function(object){
+	refreshRow: function(id, getFirst){
 		// summary:
 		//		Given a store object, refreshes the row representing that object.
-		var row = this.row(object),
+		// id:
+		//		Store object id, or anything else passable to List.row()
+		// getFirst: Boolean
+		//		Whether to perform a store.get for data before refreshing.
+		//		Defaults to true.
+		
+		var row = this.row(id),
+			self = this,
 			element = row && row.element,
 			parentNode = element && element.parentNode,
-			beforeNode, i;
+			object, beforeNode, i;
 		
 		if(!parentNode){ return; } // not currently rendered
 		
+		// normalize id from retrieved row information
+		id = this.store.getIdentity(row.data);
+		
+		object = (getFirst !== false ? this.store.get(id) : row.data);
+		console.log("object:", object);
 		beforeNode = element.nextSibling;
 		i = element.className.indexOf("dgrid-row-odd") > -1 ? 1 : 0;
 		
-		// remove old
-		row.remove();
-		// insert new
-		row = this.insertRow(object, parentNode, beforeNode, i);
-		// highlight new
-		put(row, ".ui-state-highlight");
-		setTimeout(function(){
-			put(row, "!ui-state-highlight");
-		}, this.highlightTime);
+		Deferred.when(object, function(){
+			// remove old
+			row.remove();
+			// insert new
+			row = self.insertRow(object, parentNode, beforeNode, i);
+			// highlight new
+			put(row, ".ui-state-highlight");
+			setTimeout(function(){
+				put(row, "!ui-state-highlight");
+			}, self.highlightTime);
+		});
 	},
 	
 	lastScrollTop: 0,
@@ -419,7 +433,7 @@ return declare([List], {
 		}
 		
 		function refresh(object){
-			self.refreshRow(object);
+			self.refreshRow(object, this.getAfterPut);
 		}
 		
 		// For every dirty item, grab the ID
@@ -430,7 +444,7 @@ return declare([List], {
 			
 			// Add this item onto the promise chain,
 			// getting the item from the store before / after, if desired.
-			promise = promise.then(get).then(put).then(get).then(refresh);
+			promise = promise.then(get).then(put).then(refresh);
 		}
 		
 		// Kick off and return the promise representing all applicable get/put ops.

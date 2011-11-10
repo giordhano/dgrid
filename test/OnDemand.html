@@ -56,8 +56,10 @@
 		<script type="text/javascript" src="../../dojo/dojo.js" 
 			data-dojo-config="async: true"></script>
 		<script type="text/javascript">
-			require(["dojo/on", "dgrid/OnDemandList", "dgrid/OnDemandGrid","dgrid/Keyboard", "dgrid/Selection", "dgrid/Editor", "dijit/form/DateTextBox", "dijit/form/HorizontalSlider", "dijit/form/NumberSpinner",  "dgrid/test/data/base", "dojo/_base/lang", "dojo/_base/declare", "dojo/_base/array", "dojo/_base/Deferred", "dojo/dom-construct", "dojo/store/Memory", "dojo/domReady!"],
-				function(on, List, Grid, Keyboard, Selection, Editor, DateTextBox, Slider, NumberSpinner, data, lang, declare, arrayUtil, Deferred, domConstruct, Memory){
+			require(["dojo/on", "dojo/aspect", "dgrid/OnDemandList", "dgrid/OnDemandGrid","dgrid/Keyboard", "dgrid/Selection", "dgrid/Editor", "dijit/form/DateTextBox", "dijit/form/HorizontalSlider", "dijit/form/NumberSpinner",  "dgrid/test/data/base", "dojo/_base/lang", "dojo/_base/declare", "dojo/_base/array", "dojo/_base/Deferred", "dojo/dom-construct", "dojo/store/Memory", "dojo/domReady!"],
+				function(on, aspect, List, Grid, Keyboard, Selection, Editor, DateTextBox, Slider, NumberSpinner, data, lang, declare, arrayUtil, Deferred, domConstruct, Memory){
+					
+					function byId(id) { return document.getElementById(id); }
 					
 					// Create error store
 					errorStore = new Memory();
@@ -165,26 +167,26 @@
 						console.warn("error on grid: ", evt.error);
 					});
 					
-					on(document.getElementById("setstore"), "click", function(){
+					on(byId("setstore"), "click", function(){
 						console.log("setting store to colorStore: ", colorStore);
 						window.grid.setStore(colorStore);//no query
 					});
-					on(document.getElementById("restore"), "click", function(){
+					on(byId("restore"), "click", function(){
 						console.log("setting store to testStore");
 						grid.setStore(testStore);//no query
 					});
-					on(document.getElementById("colorQuery"), "click", function(){
+					on(byId("colorQuery"), "click", function(){
 						console.log("setting store to colorStore and setting query to show only primary colors");
 						grid.setStore(colorStore, {col3: "Primary"});//query set to only show primary colors
 					});
-					on(document.getElementById("resetQuery"), "click", function(){
+					on(byId("resetQuery"), "click", function(){
 						console.log("reset query to show all");
 						grid.setQuery({});
 					});
 					
 					var sortDescending = true;
 					
-					on(document.getElementById("setQueryWithOptions"), "click", function(){
+					on(byId("setQueryWithOptions"), "click", function(){
 						// set sortOrder for the col1 field
 						sortDescending ^= 1; // toggle true/false
 					
@@ -205,7 +207,7 @@
 						
 						console.log("sortOrder after setQuery: ", grid.sortOrder, grid.queryOptions);
 					});
-					on(document.getElementById("sort"), "click", function(){
+					on(byId("sort"), "click", function(){
 						sortDescending ^= 1; // toggle true/false
 						grid.sort("col1", sortDescending);
 						
@@ -213,16 +215,16 @@
 					});
 
 
-					on(document.getElementById("empty"), "click", function(){
+					on(byId("empty"), "click", function(){
 						console.log("set store to emptyStore");
 						grid.setStore(emptyStore, {});
 					});
-					on(document.getElementById("error"), "click", function(){
+					on(byId("error"), "click", function(){
 						console.log("set store to errorStore");
 						grid.setStore(errorStore,{});
 					});
 					
-					on(document.getElementById("error2"), "click", function(){
+					on(byId("error2"), "click", function(){
 						console.log("set store to defErrorStore");
 						grid.setStore(defErrorStore,{});
 					});
@@ -240,41 +242,49 @@
 						}, 0);
 					}
 					
+					function updateStore(store){
+						grid2.setStore(store, {});
+						grid3.setStore(store, {});
+						updateDirty();
+					}
+					
 					grid2.on("dgrid-error", function(evt) {
 						console.warn("error on grid2: ", evt.error);
 					});
 					
-					on(document.getElementById("save"), "click", function(){
+					on(byId("save"), "click", function(){
 						console.log("save to store");
 						grid2.save();
 						updateDirty();
 					});
 					
-					on(document.getElementById("setorigeditstore"), "click", function(){
-						grid2.setStore(testTypesStore, {});
-						updateDirty();
+					on(byId("setorigeditstore"), "click", function(){
+						updateStore(testTypesStore);
 					});
 					
-					on(document.getElementById("seterrorputstore"), "click", function(){
-						grid2.setStore(putErrorStore, {});
-						updateDirty();
+					on(byId("seterrorputstore"), "click", function(){
+						updateStore(putErrorStore);
 					});
 					
-					on(document.getElementById("setdeferrorputstore"), "click", function(){
-						grid2.setStore(defPutErrorStore, {});
-						updateDirty();
+					on(byId("setdeferrorputstore"), "click", function(){
+						updateStore(defPutErrorStore);
 					});
 					
 					var dirtyListener = grid2.on("dgrid-datachange", updateDirty);
 					
+					// refresh rows in 3rd grid when they are refreshed in 2nd grid
+					aspect.after(grid2, "refreshRow", function(id){
+						grid3.refreshRow(id);
+					}, true);
+					
 					// buttons for 3rd grid
 					
-					on(document.getElementById("add"), "click", function(){
+					on(byId("add"), "click", function(){
 						var id = smallColorStore.data.length+Math.floor(Math.random()*1001);
 						console.log("id: ", id);
 						smallColorStore.put({id: id, col1: "Grey", col2: false, col3: "Hue", col4:'A hue' , col5: 192, col6: 192, col7: 192 });
 					});
-					on(document.getElementById("delete"), "click", function(){
+					on(byId("delete"), "click", function(){
 						for(var id in gridAddDel.selection){
 							smallColorStore.remove(id);
 						}
