@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link rel="stylesheet" href="../../dojo/resources/dojo.css">
+		<link rel="stylesheet" href="../css/skins/claro.css">
+		<style>
+#grid, #grid2 {
+	height: 300px;
+}
+		</style>
+	</head>
+	<body class="claro">
+		<p>This test page tests write stores with no QueryEngine to see what happens.</p>
+		<h2>Grid w/ ItemFileWriteStore via DataStore</h2>
+		<div id="grid"></div>
+		<h2>Grid w/ QueryStore (simplistic server-filtering implementation)</h2>
+		<div id="grid2"></div>
+		<script src="../../dojo/dojo.js" data-dojo-config="async:true"></script>
+		<script>
+require(["dgrid/OnDemandGrid", "dojo/data/ItemFileWriteStore", "dojo/store/DataStore", "dojo/store/Observable", "dojo/_base/Deferred", "dgrid/test/data/QueryStore"],
+function(Grid, ItemFileWriteStore, DataStore, Observable, Deferred, QueryStore){
+	var items = [], ifws, datastore, querystore, grid, grid2, i,
+		names = ["sasquatch", "foo", "bar", "zaphod", "beeblebrox"];
+	
+	// generate data
+	for(i = 1; i <= 200; i++){
+		items.push({
+			id: i,
+			name: names[i%5]
+		});
+	}
+	
+	ifws = new ItemFileWriteStore({ data: { identifier: "id", items: items } });
+	datastore = window.datastore = Observable(new DataStore({store: ifws}));
+	
+	grid = window.grid = new Grid({
+		columns: { id: "id", name: "name" },
+		store: datastore
+	}, "grid");
+	
+	querystore = window.querystore = Observable(new QueryStore({
+		dataUrl: "data/querystore.php"
+	}));
+	
+	grid2 = window.grid2 = new Grid({
+		columns: { id: "id", name: "name" },
+		store: querystore
+	}, "grid2");
+});
+		</script>
+	</body>
+</html>

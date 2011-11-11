@@ -326,6 +326,7 @@ function(put, declare, listen, aspect, has, TouchScroll, hasClass){
 			if(results.observe){
 				// observe the results for changes
 				this.observers.push(results.observe(function(object, from, to){
+					console.log("notified:", object, from, to);
 					// a change in the data took place
 					if(from > -1 && rows[from] && rows[from].parentNode){
 						// remove from old slot
