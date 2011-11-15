@@ -56,8 +56,8 @@
 		<script type="text/javascript" src="../../dojo/dojo.js" 
 			data-dojo-config="async: true"></script>
 		<script type="text/javascript">
-			require(["dojo/on", "dojo/aspect", "dgrid/OnDemandList", "dgrid/OnDemandGrid","dgrid/Keyboard", "dgrid/Selection", "dgrid/Editor", "dijit/form/DateTextBox", "dijit/form/HorizontalSlider", "dijit/form/NumberSpinner",  "dgrid/test/data/base", "dojo/_base/lang", "dojo/_base/declare", "dojo/_base/array", "dojo/_base/Deferred", "dojo/dom-construct", "dojo/store/Memory", "dojo/domReady!"],
-				function(on, aspect, List, Grid, Keyboard, Selection, Editor, DateTextBox, Slider, NumberSpinner, data, lang, declare, arrayUtil, Deferred, domConstruct, Memory){
+			require(["dojo/on", "dgrid/OnDemandList", "dgrid/OnDemandGrid","dgrid/Keyboard", "dgrid/Selection", "dgrid/Editor", "dijit/form/DateTextBox", "dijit/form/HorizontalSlider", "dijit/form/NumberSpinner",  "dgrid/test/data/base", "dojo/_base/lang", "dojo/_base/declare", "dojo/_base/array", "dojo/_base/Deferred", "dojo/dom-construct", "dojo/store/Memory", "dojo/domReady!"],
+				function(on, List, Grid, Keyboard, Selection, Editor, DateTextBox, Slider, NumberSpinner, data, lang, declare, arrayUtil, Deferred, domConstruct, Memory){
 					
 					function byId(id) { return document.getElementById(id); }
 					
@@ -271,11 +271,6 @@
 					});
 					
 					var dirtyListener = grid2.on("dgrid-datachange", updateDirty);
-					
-					// refresh rows in 3rd grid when they are refreshed in 2nd grid
-					aspect.after(grid2, "refreshRow", function(id){
-						grid3.refreshRow(id);
-					}, true);
 					
 					// buttons for 3rd grid
 					
