@@ -21,8 +21,6 @@ function afterNotify(grid, object, existingId){
 		// An existing object is being modified (e.g. put).
 		// If it is currently rendered, refresh only that item.
 		// TODO: what if the modification affects sort?
-		console.dir(grid.row(object).data);
-		console.dir(object);
 		grid.refreshRow(object);
 	}else if(!object && exists){
 		// An existing object is being removed
@@ -191,6 +189,9 @@ return declare([List], {
 	refresh: function(){
 		this.inherited(arguments);
 		if(this.store){
+			// reset start/end tracking variables
+			this._renderedStart = 0;
+			this._renderedEnd = this.minRowsPerPage;
 			// render the query
 			var self = this;
 			this._trackError(function(){
@@ -240,7 +241,6 @@ return declare([List], {
 		id = this.store.getIdentity(row.data);
 		
 		object = (getFirst !== false ? this.store.get(id) : row.data);
-		console.log("object:", object);
 		beforeNode = element.nextSibling;
 		i = element.className.indexOf("dgrid-row-odd") > -1 ? 1 : 0;
 		
@@ -272,15 +272,16 @@ return declare([List], {
 		
 		function removeDistantNodes(grid, preloadNode, distanceOff, traversal, below){
 			// we check to see the the nodes are "far off"
-			var farOffRemoval = grid.farOffRemoval;
+			var farOffRemoval = grid.farOffRemoval,
+				count = 0;
 			// we check if it is twice as much as farOffRemoval and then prune down to farOffRemoval, we could make that configurable as well
 			if(distanceOff > 2 * farOffRemoval){
 				// ok, there is preloadNode that is far off, let's remove rows until we get to farOffRemoval
 				var row, nextRow = preloadNode[traversal];
 				var reclaimedHeight = 0;
-				var count = 0;
 				var toDelete = [];
 				while(row = nextRow){ // intentional assignment
+					// FIXME: this will be inaccurate if "rows" are e.g. floated.
 					var rowHeight = row.offsetHeight;
 					if(reclaimedHeight + rowHeight + farOffRemoval > distanceOff || nextRow.className.indexOf("dgrid-row") < 0){
 						// we have reclaimed enough rows or we have gone beyond grid rows, let's call it good
@@ -312,6 +313,8 @@ return declare([List], {
 				},1);
 			}
 			
+			// return count to indicate how many rows were removed
+			return count;
 		}
 		function adjustHeight(grid, preloadNode){
 			var newHeight = preloadNode.count * grid.rowHeight;
@@ -362,11 +365,14 @@ return declare([List], {
 				preloadNode.count -= count;
 				var beforeNode = preloadNode;
 				var keepScrollTo;
+				var numRemoved = 0;
 				if(preloadNode.start > 0){
 					// add new rows below
 					var previous = preloadNode.previous;
 					if(previous){
-						removeDistantNodes(this, previous, visibleTop - (previous.offsetTop + previous.offsetHeight), 'nextSibling');
+						// remove nodes far above the viewport; influences _renderedStart
+						numRemoved = removeDistantNodes(this, previous,
+							visibleTop - (previous.offsetTop + previous.offsetHeight), "nextSibling");
 						if(offset > 0 && previous == preloadNode.previousSibling){
 							offset = Math.min(preloadNode.count, offset);
 							preloadNode.previous.count += offset;
@@ -379,8 +385,9 @@ return declare([List], {
 				}else{
 					// add new rows above
 					if(preloadNode.next){
-						// remove out of sight nodes first
-						removeDistantNodes(this, preloadNode.next, preloadNode.next.offsetTop - visibleBottom, 'previousSibling', true);
+						// remove nodes far below the viewport; influences _renderedEnd
+						numRemoved = -removeDistantNodes(this, preloadNode.next,
+							preloadNode.next.offsetTop - visibleBottom, "previousSibling", true);
 						var beforeNode = preloadNode.nextSibling;
 						if(beforeNode == preloadNode.next){
 							// all of the nodes were removed, can position wherever we want
@@ -425,8 +432,18 @@ return declare([List], {
 						}
 				});
 				preloadNode = preloadNode.previous;
-
+				
+				// update internal instance variables which track the range of rows
+				// currently rendered.
+				this[numRemoved > 0 ? "_renderedStart" : "_renderedEnd"] += numRemoved;
+				// TODO: maybe should do the "growing" part in the when callback?
+				if(numRemoved > 0){ // scrolling down
+					this._renderedEnd += count;
+				}else{ // scrolling up
+					this._renderedStart -= count;
+				}
 			}
+			console.log("updated rendered range:", this._renderedStart, this._renderedEnd);
 		}
 	},
 	
