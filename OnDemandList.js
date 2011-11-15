@@ -1,9 +1,43 @@
-define(["dojo/_base/declare", "dojo/_base/lang", "dojo/_base/Deferred", "dojo/on", "put-selector/put", "./List"],
-function(declare, lang, Deferred, listen, put, List){
+define(["dojo/_base/declare", "dojo/_base/lang", "dojo/_base/Deferred", "dojo/on", "dojo/aspect", "put-selector/put", "./List"],
+function(declare, lang, Deferred, listen, aspect, put, List){
 
 function emitError(err){
 	// called by _trackError in context of list/grid, if an error is encountered
 	listen.emit(this.domNode, "dgrid-error", { error: err });
+}
+
+// functions attached as advice to store functions
+// TODO: expose to be extendable / overridable?
+
+function afterNotify(grid, object, existingId){
+	var store = grid.store,
+		id = object && store.getIdentity(object),
+		rendered = id !== undefined && grid._rowIdToObject[grid.id + "-row-" + id],
+		exists = existingId !== undefined,
+		existingRendered =
+			exists && grid._rowIdToObject[grid.id + "-row-" + existingId];
+	
+	if(rendered && exists){
+		// An existing object is being modified (e.g. put).
+		// If it is currently rendered, refresh only that item.
+		// TODO: what if the modification affects sort?
+		console.dir(grid.row(object).data);
+		console.dir(object);
+		grid.refreshRow(object);
+	}else if(!object && exists){
+		// An existing object is being removed
+		if(existingRendered){
+			// object removed was currently rendered;
+			// "fast-track" odd/even class switches and render one additional row
+			// (If we can't swing this, will have to refresh entire rendered range)
+		}else{
+			// object removed wasn't currently rendered, so can't foresee effect;
+			// refresh entire rendered range
+		}
+	}else if(object && !exists){
+		// object was added, can't foresee effect;
+		// refresh entire rendered range
+	}
 }
 
 return declare([List], {
@@ -43,6 +77,12 @@ return declare([List], {
 		listen(this.bodyNode, "scroll", function(event){
 			self.onscroll(event);
 		});
+		this.store && this._hookupStoreAdvice();
+	},
+	
+	destroy: function(){
+		this._teardownStoreAdvice();
+		this.inherited(arguments);
 	},
 	
 	setStore: function(store, query, queryOptions){
@@ -52,6 +92,7 @@ return declare([List], {
 		this.store = store;
 		this.dirty = {}; // discard dirty map, as it applied to a previous store
 		this.setQuery(query, queryOptions);
+		this._hookupStoreAdvice(); // (re-)hook up aspects
 	},
 	setQuery: function(query, queryOptions){
 		// summary:
@@ -432,10 +473,6 @@ return declare([List], {
 			};
 		}
 		
-		function refresh(object){
-			self.refreshRow(object, this.getAfterPut);
-		}
-		
 		// For every dirty item, grab the ID
 		for(var id in this.dirty) {
 			// Create put function to handle the saving of the the item
@@ -444,7 +481,7 @@ return declare([List], {
 			
 			// Add this item onto the promise chain,
 			// getting the item from the store before / after, if desired.
-			promise = promise.then(get).then(put).then(refresh);
+			promise = promise.then(get).then(put);
 		}
 		
 		// Kick off and return the promise representing all applicable get/put ops.
@@ -452,6 +489,27 @@ return declare([List], {
 		// save will stop at the first error it encounters.
 		dfd.resolve();
 		return promise;
+	},
+	
+	_hookupStoreAdvice: function(){
+		// summary:
+		//		Attaches advice to store functions so that list can react to updates.
+		var self = this;
+		this._teardownStoreAdvice();
+		this._storeAdvice = [
+			aspect.after(this.store, "notify", function(object, existingId){
+				afterNotify(self, object, existingId);
+			}, true)
+		];
+	},
+	
+	_teardownStoreAdvice: function(){
+		var i, advice = this._storeAdvice;
+		if(advice){
+			for (i = advice.length; i--;){
+				advice[i].remove();
+			}
+		}
 	},
 	
 	_trackError: function(func){
