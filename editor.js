@@ -252,7 +252,13 @@ function showEditor(cmp, column, cell, value){
 		// Set value, but ensure it isn't processed as a user-generated change.
 		// (Clear flag on a timeout to wait for delayed onChange to fire first)
 		cmp._dgridIgnoreChange = true;
-		cmp.set("value", value);
+		   
+         if(dojo.isObject(value)){               
+             cmp.set(value);
+         }else{             
+             cmp.set("value", value);
+         }
+
 		setTimeout(function(){ cmp._dgridIgnoreChange = false; }, 0);
 	}
 	// track previous value for short-circuiting or in case we need to revert
